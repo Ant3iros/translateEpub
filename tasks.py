@@ -22,6 +22,6 @@ class CustomTasks:
                 """
             ),
             agent=agent,
-            expected_output="un rapport",
+            expected_output="un texte",
             tools=[]
         )
