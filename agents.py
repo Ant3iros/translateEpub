@@ -15,7 +15,7 @@ class CustomAgents:
 
     def translator(self):
         return Agent(
-            role="officier J2",
+            role="translator",
             backstory=dedent(r"""You are a professionnal translator"""),
             goal=dedent(f"""
                 Tu es un traducteur professionnel, tu traduis des romans en français. 
