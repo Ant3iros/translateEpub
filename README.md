@@ -1,4 +1,26 @@
 # translateEpub
-A demonstration of using crewAI for translating in French my epub files
+Une démo pour traduire mes fichiers epub en français, via un client LLM générique
+(compatible SDK OpenAI) qui peut pointer vers Socle AI, OpenAI, ou Anthropic.
 
-don't forget to do a export GROQ_API_KEY=XXXXXXXXXXXXXXXXXX
+## Configuration
+
+Crée un fichier `.env` à la racine (utilisé via `python-decouple`) :
+
+```
+PROVIDER=socle       # socle | openai | anthropic
+API_KEY=xxxxxxxxxxxxxxxxxx
+MODEL_NAME=xxxxxxxxxxxxxxxxxx
+# BASE_URL=...       # optionnel, pour surcharger l'URL du provider
+```
+
+## Installation
+
+```
+pip install ebooklib beautifulsoup4 gtts python-decouple openai
+```
+
+## Utilisation
+
+```
+python main.py mon_livre.epub
+```

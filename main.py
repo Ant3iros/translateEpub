@@ -1,46 +1,36 @@
-import os
-from crewai import Agent, Task, Crew, Process
-from decouple import config
+import argparse
+import time
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 from gtts import gTTS
-from agents import CustomAgents
-from tasks import CustomTasks
+from decouple import config
+from llm_client import chat
 
 # Assurez-vous que les bibliothèques nécessaires sont installées:
-# pip install ebooklib beautifulsoup4 requests python-decouple gtts
+# pip install ebooklib beautifulsoup4 requests python-decouple gtts openai
 
-epub_path = "Bossgrot.epub"
+TARGET_LANGUAGE = config("TARGET_LANGUAGE", default="français")
+
+TRANSLATOR_SYSTEM_PROMPT = (
+    f"Tu es un traducteur professionnel, tu traduis des romans en {TARGET_LANGUAGE}. "
+    "Reste sur de la donnée vérifiée, n'invente pas."
+)
+
+
+def translate_section(text_section: str) -> str:
+    prompt = (
+        f"Traduit cet extrait de roman en {TARGET_LANGUAGE}, essaye de respecter un format roman. "
+        "Fait des retours à la ligne là où il te semble correct, comme lorsqu'un "
+        f"personnage parle par exemple.\n\nLe texte : {text_section}"
+    )
+    return chat(prompt, system=TRANSLATOR_SYSTEM_PROMPT)
+
 result_epub_path = "result.epub"
 output_text_file = "traduction.txt"
 output_audio_file = "traduction.mp3"
 skip = 0
 CHAR_LIMIT = 4000  # Le nombre maximum de caractères par bloc
-
-class CustomCrew:
-    def __init__(self, text_section):
-        self.text_section = text_section
-
-    def run(self):
-        agents = CustomAgents()
-        tasks = CustomTasks()
-
-        translator = agents.translator()
-
-        translate = tasks.translate(
-            translator,
-            self.text_section
-        )
-
-        crew = Crew(
-            agents=[translator],
-            tasks=[translate],
-            verbose=True,
-        )
-
-        result = crew.kickoff()
-        return result
 
 def save_translations_to_file(translations, file_path):
     with open(file_path, 'w', encoding='utf-8') as f:
@@ -143,19 +133,41 @@ def text_to_speech(text_file, output_audio_file):
     tts.save(output_audio_file)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Traduit un fichier epub.")
+    parser.add_argument("epub_path", help="Chemin du fichier epub à traduire")
+    parser.add_argument(
+        "--count-only",
+        action="store_true",
+        help="Affiche uniquement le nombre de blocs de texte, sans lancer la traduction",
+    )
+    args = parser.parse_args()
+    epub_path = args.epub_path
+
     sections = extract_sections_from_epub(epub_path, CHAR_LIMIT)
+    total = len(sections)
+    print(f"[traduction] {total} blocs de texte à traduire (max {CHAR_LIMIT} caractères/bloc)")
+
+    if args.count_only:
+        raise SystemExit(0)
+
     translated_sections = []
     i = 0
 
     for section in sections:
         if i >= skip:
-            custom_crew = CustomCrew(section)
-            result = custom_crew.run()
+            start = time.monotonic()
+            print(f"[traduction] bloc {i + 1}/{total} ({len(section)} caractères)...")
+            result = translate_section(section)
             translated_sections.append(result)
             save_translations_to_file(translated_sections, output_text_file)
-        print(i)
+            elapsed = time.monotonic() - start
+            print(f"[traduction] bloc {i + 1}/{total} terminé en {elapsed:.1f}s")
+        else:
+            print(f"[traduction] bloc {i + 1}/{total} ignoré (skip)")
         i = i + 1
 
+    print("[traduction] terminée, génération de l'epub final...")
     #(txt_file, epub_file, title="Title", author="Author")
     create_epub_from_txt(output_text_file, result_epub_path, epub_path, "script Benjamin De Almeida")
     #text_to_speech(output_text_file, output_audio_file)
+    print(f"[traduction] fichier généré : {result_epub_path}")
