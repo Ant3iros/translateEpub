@@ -13,6 +13,8 @@ MODEL_NAME=xxxxxxxxxxxxxxxxxx
 # BASE_URL=...       # optionnel, pour surcharger l'URL du provider
 ```
 
+Pour l'usage de Socle je vous conseille le modèle 'qwen3-235b-a22b-instruct-2507'
+
 ## Installation
 
 ```
